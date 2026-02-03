@@ -1,1 +1,9 @@
-pip install authlib httpx
+fastapi
+uvicorn
+psycopg[binary]
+python-dotenv
+python-jose
+authlib
+httpx
+itsdangerous
+pydantic
