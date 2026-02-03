@@ -22,10 +22,18 @@ def create_submission(data: SubmissionCreate, student=Depends(require_student)):
             """
             SELECT id
             FROM activity_requests
-            WHERE id = %s AND status = 'approved';
+            WHERE id = %s
+            AND student_id = %s
+            AND status = 'approved';
+
             """,
-            (data.request_id,)
+            (data.request_id,student["user_id"])
         )
+        if cur.fetchone():
+            raise HTTPException(
+                status_code=400,
+                detail="Submission already exists for this request"
+            )
 
         approved_request = cur.fetchone()
         if approved_request is None:
@@ -33,6 +41,8 @@ def create_submission(data: SubmissionCreate, student=Depends(require_student)):
                 status_code=400,
                 detail="Activity request is not approved or does not exist"
             )
+        
+        
 
         cur.execute(
             """
@@ -61,13 +71,9 @@ def create_submission(data: SubmissionCreate, student=Depends(require_student)):
         raise HTTPException(status_code=400, detail=str(e))
 
 
-class SubmissionVerify(BaseModel):
-    admin_id: int
-
-
 #EndPoint #5. Admin verifiying the submission
 @router.put("/{submission_id}/verify")
-def verify_submission(submission_id: int, data: SubmissionVerify, admin=Depends(require_admin)):
+def verify_submission(submission_id: int, admin=Depends(require_admin)):
     try:
         conn = get_connection()
         cur = conn.cursor()
@@ -82,7 +88,7 @@ def verify_submission(submission_id: int, data: SubmissionVerify, admin=Depends(
               AND status = 'pending'
             RETURNING id;
             """,
-            (data.admin_id, submission_id)
+            (admin["user_id"], submission_id)
         )
 
         result = cur.fetchone()
